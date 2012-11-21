@@ -180,7 +180,7 @@ class FileWorker(object):
             file=filename, sbyte=part['begin'], ebyte=part['end'], dest=destination)
 
         with open(destination, 'r+b') as fp:
-            fp.seek(int(part['begin'])-1)
+            fp.seek(int(part['begin'])-1)  # HOHOHO, yeah, -1...
             fp.write(body)
             fp.flush()
 
