@@ -171,13 +171,6 @@ class FileWorker(object):
         # The header tells us the target file and size. Let's setup the destination file if we need to.
         destination = os.path.join(job.dest, header['name'])
         with self.lock:
-#            if destination not in MAPPED_FILES:
-#                fp = open(destination, 'wb')
-#                fp.truncate(int(header['size']))
-#                fp.close()
-#                fp = open(destination, 'r+b')
-#                MAPPED_FILES[destination] = (fp, mmap.mmap(fp.fileno(), 0, access=mmap.ACCESS_WRITE))
-
             if not os.path.isfile(destination):
                 with open(destination, 'ab') as fp:
                     fp.truncate(int(header['size']))
@@ -185,11 +178,8 @@ class FileWorker(object):
         # The part tells us what block this is we are reading, let's put the block in the right place.
         self.status_update(state=FileWorker.STATE_PROC, msg='Reading File',
             file=filename, sbyte=part['begin'], ebyte=part['end'], dest=destination)
-#        fp, map = MAPPED_FILES[destination]
-#        map[int(part['begin'])-1:int(part['end'])] = body
 
         with open(destination, 'r+b') as fp:
-            #with contextlib.closing(mmap.mmap(fp.fileno(), 0, access=mmap.ACCESS_WRITE)) as m:
             fp.seek(int(part['begin'])-1)
             fp.write(body)
             fp.flush()
