@@ -1,8 +1,8 @@
 __author__ = 'trey'
 
 class BaseNZBSource(object):
-    def __init__(self, config):
-        self.config = config
+    def search(self, id):
+        raise NotImplementedError()
 
     def fetch(self, id):
         raise NotImplementedError()

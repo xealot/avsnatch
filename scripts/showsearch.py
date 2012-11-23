@@ -1,36 +1,40 @@
 #!/usr/bin/python
-import logging
-from config import load_config
 from sourcedb import load_info_source
+from scripts import BaseScript
 
-log = logging.getLogger()
 
-def search(backend, search_str, config):
-    """Search for and add a new show to the tracker"""
-    tv = load_info_source(backend, config)
-    results = tv.find_show(search_str)
-    return results
+class ShowSearch(BaseScript):
+    """
+    This is the console interface to the TVDB Search.
+    """
+    def configure_args(self, parser):
+        super(ShowSearch, self).configure_args(parser)
+        parser.add_argument('-i', '--id', action='store_true', help="Specify an ID to retrieve complete show data.")
+        parser.add_argument('search', action='store', help="The search string or id you are looking for. Use QUOTES to specify a string with spaces.")
+
+    def start(self, args, config):
+        tv = load_info_source('tv', config['TVDB_API_KEY'])
+        if not args.id:
+            self.print_search_results(tv.find_series(args.search))
+        else:
+            self.print_series(tv.get_series(args.search))
+
+    def print_series(self, series):
+        for i in ['id', 'Network', 'Status', 'Airs_Time', 'Airs_DayOfWeek', 'SeriesName']:
+            print '{:15s}: {}'.format(i, series[i])
+        for episode in series['episodes']:
+            print ' - S{:02d}E{:02d} ({}) > {}'.format(
+                int(episode['SeasonNumber']), int(episode['EpisodeNumber']), episode['FirstAired'], episode['EpisodeName']
+            )
+
+    def print_search_results(self, results):
+        for result in results:
+            if 'error' in result:
+                print 'ERROR {}'.format(result['error'])
+            else:
+                print '{:7d} - {:100s}'.format(
+                    int(result['id']), result['SeriesName'][-100:]
+                )
 
 if '__main__' == __name__:
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('search', metavar='SHOW', type=str, nargs='+',
-                   help='The name of a show you are searching for')
-    parser.add_argument('-v', '--verbose', dest='verbose', action='count', default=0,
-                    help="Increase verbosity (specify multiple times for more)")
-    args = parser.parse_args()
-
-    log_level = logging.WARNING # default
-    if args.verbose == 1:
-        log_level = logging.INFO
-    elif args.verbose >= 2:
-        log_level = logging.DEBUG
-
-    logging.basicConfig(level=log_level)
-
-    config = load_config()
-
-    results = search('tv', args.search, config)
-    print results
-
+    ShowSearch()

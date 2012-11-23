@@ -4,13 +4,13 @@ from config import load_config
 __author__ = 'trey'
 
 class BaseScript(object):
-    def __init__(self):
+    def __init__(self, args=None):
         import argparse
         self.log = logging.getLogger()
 
         self.parser = parser = argparse.ArgumentParser()
         self.configure_args(self.parser)
-        self.args = args = parser.parse_args()
+        self.args = args = parser.parse_args(args=args)
 
         log_level = logging.WARNING # default
         if args.verbose == 1:

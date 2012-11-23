@@ -67,7 +67,6 @@ def download_segment(connection, segment, signal=None, destination=None):
     if destination is not None and not os.path.exists(destination):
         print 'DESTINATION "{}" NOT FOUND'.format(destination)
         return
-    filename = '{0}+{1:03d}.part'.format(segment.message_id, segment.number)
 
     # Status Types are Processing and Downloading.
     def _processing(state, msg, bytes=None):
@@ -75,8 +74,8 @@ def download_segment(connection, segment, signal=None, destination=None):
             signal_data = dict(
                 state=state,
                 msg=msg,
-                name=filename,
-                sequence=segment.number,
+                name=segment.message_id,
+                sequence=segment.number
             )
             if bytes is not None:
                 signal_data.update(data=dict(
@@ -93,21 +92,13 @@ def download_segment(connection, segment, signal=None, destination=None):
     connection.group(segment.groups[1])
     connection.body('<{}>'.format(segment.message_id), buffer)
 
-    buffer.seek(0)
-    preamble = buffer.readline()
-    buffer.seek(0)
-    if not preamble.startswith('=ybegin'):
-        print 'uhoh'
-    header = parse_yenc_header(preamble)
-
-    filename = '{0}+{1:03d}.part'.format(header['name'], segment.number)
     if destination is None:
         return (
-            header['name'], segment.number, buffer
+            segment, buffer
         )
 
     _processing(NNTPProcessor.STATE_PROC, 'Writing File', bytes=segment.bytes)
-    with open(os.path.join(destination, filename), 'wb') as fp:
+    with open(os.path.join(destination, segment.message_id), 'wb') as fp:
         buffer.seek(0)
         fp.write(buffer.read())
 
@@ -115,15 +106,16 @@ def download_segment(connection, segment, signal=None, destination=None):
 class NZBFetch(BaseScript):
     def configure_args(self, parser):
         super(NZBFetch, self).configure_args(parser)
-        parser.add_argument('-z', '--nzb', dest='nzbfile', action='store', help="Specify a NZB file")
         parser.add_argument('-n', '--connections', dest='connections', action='store', type=int, default=20)
+        parser.add_argument('nzb', action='store', help="Specify a NZB file")
+        parser.add_argument('dest', action='store', help="Specify a download location")
 
     def start(self, args, config):
         task_queue = Queue()
         status_event = Event()
 
         target_bytes = 0
-        with open(args.nzbfile) as fp:
+        with open(args.nzb) as fp:
             parsed = parse_nzb(fp.read())
         for file in parsed:
             for segment in file.segments:
@@ -164,7 +156,7 @@ class NZBFetch(BaseScript):
                         status = processor.status_data
                         intro = '<{state:^11s}> - {seq:>03d} / {file:^20}:'.format(
                             state=status['state'],
-                            file=status['name'][-20:],
+                            file=status['name'][:20],
                             seq=status['sequence']
                         )
 
