@@ -19,6 +19,17 @@ import logging
 
 __author__ = 'trey'
 
+ESTATE_WANTED = 'wanted'
+ESTATE_SEARCHING = 'searching'
+ESTATE_FETCHING = 'fetching'
+ESTATE_PROCESSING = 'processing'
+ESTATE_SKIPPED = 'skipped'
+ESTATE_IGNORED = 'ignored'
+ESTATE_EXCEPTION = 'exception'
+
+EPISODE_STATES = (ESTATE_WANTED, ESTATE_SEARCHING, ESTATE_FETCHING, ESTATE_PROCESSING,
+                  ESTATE_SKIPPED, ESTATE_IGNORED, ESTATE_EXCEPTION)
+DEFAULT_STATE = ESTATE_IGNORED
 
 class AVScheduler(object):
     def __init__(self):

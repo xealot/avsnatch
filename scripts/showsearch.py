@@ -20,7 +20,7 @@ class ShowSearch(BaseScript):
             self.print_series(tv.get_series(args.search))
 
     def print_series(self, series):
-        for i in ['id', 'Network', 'Status', 'Airs_Time', 'Airs_DayOfWeek', 'SeriesName']:
+        for i in ['id', 'network', 'status', 'airtime', 'airday', 'name']:
             print '{:15s}: {}'.format(i, series[i])
         for episode in series['episodes']:
             print ' - S{:02d}E{:02d} ({}) > {}'.format(
@@ -33,7 +33,7 @@ class ShowSearch(BaseScript):
                 print 'ERROR {}'.format(result['error'])
             else:
                 print '{:7d} - {:100s}'.format(
-                    int(result['id']), result['SeriesName'][-100:]
+                    int(result['id']), result['name'][-100:]
                 )
 
 if '__main__' == __name__:

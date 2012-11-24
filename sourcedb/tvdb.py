@@ -7,6 +7,31 @@ __author__ = 'trey'
 
 log = logging.getLogger()
 
+series_col_map = {
+    'id': 'tvdb_id',
+    'IMDB_ID': 'imdb_id',
+    'zap2it_id': 'zap2it_id',
+    'FirstAired': 'first_aired',
+    'Airs_Time': 'airtime',
+    'Airs_DayOfWeek': 'airday',
+    'Network': 'network',
+    'banner': 'banner',
+    'Language': 'language',
+    'SeriesName': 'name',
+    'Status': 'status',
+    'Overview': 'overview',
+}
+
+episode_col_map = {
+    'id': 'id',
+    'seriesid': 'series_id',
+    'SeasonNumber': 'season',
+    'EpisodeNumber': 'episode',
+    'FirstAired': 'air_date',
+    'EpisodeName': 'name',
+}
+
+
 class TheTVDB(BaseSource):
     BASE_URL = 'http://thetvdb.com/api'
 
@@ -38,18 +63,29 @@ class TheTVDB(BaseSource):
             node_dict[el.tag] = el.text
         return node_dict
 
+    def _convert(self, data, map):
+        converted = {}
+        for s, d in map.items():
+            converted[d] = data[s]
+        return converted
+
     def find_series(self, search_string):
         response = self._get('/GetSeries.php', params=self._default_params(seriesname=search_string), with_key=False)
 
         root = ET.fromstring(response.text.encode('utf8'))
-        return self._nodes_to_dict(root.findall('Series'))
+        results = []
+        for result in self._nodes_to_dict(root.findall('Series')):
+            results.append(self._convert(result, series_col_map))
+        return results
 
     def get_series(self, show_id):
         response = self._get('/series/{}/all/'.format(show_id), params=self._default_params())
 
         root = ET.fromstring(response.text.encode('utf8'))
-        series = self._node_to_dict(root.find('Series'))
-        series['episodes'] = self._nodes_to_dict(root.findall('Episode'))
+        series = self._convert(self._node_to_dict(root.find('Series')), series_col_map)
+        series['episodes'] = []
+        for ep in self._nodes_to_dict(root.findall('Episode')):
+            series['episodes'].append(self._convert(ep, episode_col_map))
         return series
 
 

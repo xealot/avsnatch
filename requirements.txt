@@ -1,8 +1,12 @@
+DateUtils==0.5.2
 SQLAlchemy==0.7.9
 blessings==1.5
 blinker==1.2
 configobj==4.7.2
 lockfile==0.9.1
 python-daemon==1.6
+python-dateutil==2.1
+pytz==2012h
 requests==0.14.2
+six==1.2.0
 wsgiref==0.1.2

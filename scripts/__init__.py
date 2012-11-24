@@ -1,10 +1,11 @@
+import argparse
 import logging
 from config import load_config
 
 __author__ = 'trey'
 
 class BaseScript(object):
-    def __init__(self, args=None):
+    def __init__(self, args=None, config=None):
         import argparse
         self.log = logging.getLogger()
 
@@ -20,7 +21,8 @@ class BaseScript(object):
 
         logging.basicConfig(level=log_level)
 
-        self.config = config = load_config(self.args.config)
+        if config is None:
+            self.config = config = load_config(self.args.config)
         self.start(args, config)
 
     def configure_args(self, parser):
@@ -31,3 +33,20 @@ class BaseScript(object):
 
     def start(self, args, config):
         raise NotImplementedError()
+
+
+class SubCommand(BaseScript):
+    def sub_commands(self):
+        return {}
+
+    def configure_args(self, parser):
+        super(SubCommand, self).configure_args(parser)
+        parser.add_argument('command')
+        parser.add_argument('arguments', nargs=argparse.REMAINDER)
+
+    def start(self, args, config):
+        commands = self.sub_commands()
+        if args.command in commands:
+            commands[args.command](args.arguments, config)
+        else:
+            print 'UNKNOWN COMMAND'
