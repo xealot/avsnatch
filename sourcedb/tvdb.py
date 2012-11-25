@@ -63,10 +63,14 @@ class TheTVDB(BaseSource):
             node_dict[el.tag] = el.text
         return node_dict
 
-    def _convert(self, data, map):
+    def _convert(self, data, map, skip_missing=False):
         converted = {}
         for s, d in map.items():
-            converted[d] = data[s]
+            try:
+                converted[d] = data[s]
+            except KeyError:
+                if skip_missing is False:
+                    raise
         return converted
 
     def find_series(self, search_string):
@@ -75,7 +79,7 @@ class TheTVDB(BaseSource):
         root = ET.fromstring(response.text.encode('utf8'))
         results = []
         for result in self._nodes_to_dict(root.findall('Series')):
-            results.append(self._convert(result, series_col_map))
+            results.append(self._convert(result, series_col_map, skip_missing=True))
         return results
 
     def get_series(self, show_id):

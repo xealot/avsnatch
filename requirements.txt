@@ -1,5 +1,7 @@
 DateUtils==0.5.2
+PyYAML==3.10
 SQLAlchemy==0.7.9
+beanstalkc==0.3.0
 blessings==1.5
 blinker==1.2
 configobj==4.7.2

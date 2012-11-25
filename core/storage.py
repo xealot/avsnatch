@@ -3,7 +3,19 @@ from sqlalchemy import *
 from sqlalchemy.orm import sessionmaker, relationship, validates
 from sqlalchemy.ext.declarative import declarative_base
 from dateutil.parser import parse as date_parse
-from scheduler import EPISODE_STATES
+
+ESTATE_WANTED = 'wanted'
+ESTATE_SEARCHING = 'searching'
+ESTATE_FETCHING = 'fetching'
+ESTATE_PROCESSING = 'processing'
+ESTATE_SKIPPED = 'skipped'
+ESTATE_IGNORED = 'ignored'
+ESTATE_EXCEPTION = 'exception'
+
+EPISODE_STATES = (ESTATE_WANTED, ESTATE_SEARCHING, ESTATE_FETCHING, ESTATE_PROCESSING,
+                  ESTATE_SKIPPED, ESTATE_IGNORED, ESTATE_EXCEPTION)
+DEFAULT_STATE = ESTATE_IGNORED
+
 
 Base = declarative_base()
 
@@ -63,6 +75,14 @@ class Episode(Base):
         if value not in EPISODE_STATES:
             raise ValueError('State must be one of: {}'.format(', '.join(EPISODE_STATES)))
         return value
+
+    @classmethod
+    def get_waiting(cls, session):
+        today = pydatetime.datetime.today()
+        return session.query(cls).filter(cls.air_date >= today).filter(cls.state == ESTATE_WANTED).all()
+
+    def __unicode__(self):
+        return '({e.id}) S{e.season:02d}E{e.episode:02d} - {e.name}'.format(e=self)
 
 
 engine = None

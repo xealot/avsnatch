@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import daemon
-from scheduler.storage import get_session, Series, Episode
-from scheduler import AVScheduler
+from core.scheduler import AVScheduler
+from core.storage import get_session, Series
 from scripts import BaseScript
 
 
@@ -15,18 +15,13 @@ class SchedulerConsole(BaseScript):
         parser.add_argument('-l', '--logfile', dest='logfile', default='scheduler.log')
 
     def start(self, args, config):
-        session = get_session()
-        shows = session.query(Series).all()
-        print 'here'
-        print shows
-
-        return
-
-        if args.daemonize:
+        conf = config['scheduler']
+        if args.daemonize or conf['daemonize']:
             with daemon.DaemonContext():
-                AVScheduler()
+                print 'WITH DAEMON'
+                AVScheduler(sleep_time=conf['rest_duration'])
         else:
-            AVScheduler()
+            AVScheduler(sleep_time=conf['rest_duration'])
 
 
 if '__main__' == __name__:

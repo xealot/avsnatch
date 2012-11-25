@@ -1,8 +1,8 @@
 #!/usr/bin/python
 from datetime import datetime
 from blessings import Terminal
-from scheduler import ESTATE_WANTED, ESTATE_SKIPPED, EPISODE_STATES
-from scheduler.storage import get_session, Series, Episode
+from core.storage import ESTATE_WANTED, ESTATE_SKIPPED, EPISODE_STATES
+from core.storage import get_session, Series, Episode
 from scripts import BaseScript, SubCommand
 from sourcedb import load_info_source
 

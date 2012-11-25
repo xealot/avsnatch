@@ -89,7 +89,7 @@ def download_segment(connection, segment, signal=None, destination=None):
     _processing(NNTPProcessor.STATE_DOWN, 'Starting Download', bytes=1)  # Init things.
     buffer.progress(partial(_processing, NNTPProcessor.STATE_DOWN, 'Downloading'))
 
-    connection.group(segment.groups[1])
+    connection.group(segment.groups[0])
     connection.body('<{}>'.format(segment.message_id), buffer)
 
     if destination is None:
