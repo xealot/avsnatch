@@ -79,7 +79,7 @@ class Episode(Base):
     @classmethod
     def get_waiting(cls, session):
         today = pydatetime.datetime.today()
-        return session.query(cls).filter(cls.air_date >= today).filter(cls.state == ESTATE_WANTED).all()
+        return session.query(cls).filter(cls.air_date <= today).filter(cls.state == ESTATE_WANTED).all()
 
     def __unicode__(self):
         return '({e.id}) S{e.season:02d}E{e.episode:02d} - {e.name}'.format(e=self)

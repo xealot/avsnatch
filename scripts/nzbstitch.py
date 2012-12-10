@@ -9,64 +9,8 @@ import os, logging, sys, mmap, contextlib, string
 from Queue import Empty, Queue
 from threading import Thread, current_thread, Event, RLock, Lock
 from blessings import Terminal
+from lib.nzb import InvalidSegmentException, read_segment
 from scripts import BaseScript
-from lib.utils import bytes2human, parse_yenc_header
-
-yenc42 = string.join(map(lambda x: chr((x-42) & 255), range(256)), "")
-yenc64 = string.join(map(lambda x: chr((x-64) & 255), range(256)), "")
-
-# Decode a YENC-encoded message into a list of string fragments.
-def yenc_decode(lines):
-    buffer = []
-    for line in lines:
-        # Trim mandatory returns from lines.
-        if line[-2:] == "\r\n":
-            line = line[:-2]
-        elif line[-1:] in "\r\n":
-            line = line[:-1]
-
-        # Not even sure: http://effbot.org/zone/yenc-decoder.htm
-        data = string.split(line, "=")
-        buffer.append(string.translate(data[0], yenc42))
-        for data in data[1:]:
-            data = string.translate(data, yenc42)
-            buffer.append(string.translate(data[0], yenc64))
-            buffer.append(data[1:])
-    return ''.join(buffer)
-
-def read_segment(filename):
-    header = part = body = trail = None
-
-    with open(filename, 'rb') as fp:
-        with contextlib.closing(mmap.mmap(fp.fileno(), 0, access=mmap.ACCESS_READ)) as m:
-            # Check to make sure header is present
-            line = m.readline()
-            if not line.startswith('=ybegin'):
-                raise InvalidSegmentException('Not a Segment')
-            header = parse_yenc_header(line)
-
-            # For us, we depend on the part header also.
-            line = m.readline()
-            if not line.startswith('=ypart'):
-                raise InvalidSegmentException('Segment has no Part')
-            part = parse_yenc_header(line)
-
-            # Read rest of file.
-            buffer = []
-            while True:
-                line = m.readline()
-                if not line:
-                    break
-                if line.startswith('=yend'):
-                    trail = parse_yenc_header(line)
-                    break
-                buffer.append(line)
-            body = yenc_decode(buffer)
-    return header, part, body, trail
-
-
-class InvalidSegmentException(Exception): pass
-
 
 class ThreadSafeFile(object):
   def __init__(self, f):

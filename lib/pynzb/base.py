@@ -48,10 +48,11 @@ class BaseETreeNZBParser(BaseNZBParser):
         files, current_file, current_segment = [], None, None
         
         for event, elem in context:
+            tag = elem.tag  #:TODO: Sorta hacked out namespaces here, might be a better way.
             if event == "start":
                 # If it's an NZBFile, create an object so that we can add the
                 # appropriate stuff to it.
-                if elem.tag == "{http://www.newzbin.com/DTD/2003/nzb}file":
+                if tag in ("{http://www.newzbin.com/DTD/2003/nzb}file", 'file'):
                     current_file = NZBFile(
                         poster = elem.attrib['poster'],
                         date = elem.attrib['date'],
@@ -59,13 +60,13 @@ class BaseETreeNZBParser(BaseNZBParser):
                     )
             
             elif event == "end":
-                if elem.tag == "{http://www.newzbin.com/DTD/2003/nzb}file":
+                if tag in ("{http://www.newzbin.com/DTD/2003/nzb}file", 'file'):
                     files.append(current_file)
                 
-                elif elem.tag == "{http://www.newzbin.com/DTD/2003/nzb}group":
+                elif tag in ("{http://www.newzbin.com/DTD/2003/nzb}group", 'group'):
                     current_file.add_group(elem.text)
                 
-                elif elem.tag == "{http://www.newzbin.com/DTD/2003/nzb}segment":
+                elif tag in ("{http://www.newzbin.com/DTD/2003/nzb}segment", 'segment'):
                     current_file.add_segment(
                         NZBSegment(
                             bytes = elem.attrib['bytes'],

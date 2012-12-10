@@ -4,12 +4,45 @@ The AVScheduler has two primary functions.
 1. It is the job producer.
 
 2. It makes sure processes are running to consume the job queue.
+
+CONSUMERS:
+ - TVDB Search and Update
+ - NZB Search
+ - NZB Fetch
+ - NZB Stitch
+ - Repair & Extract
+
+JOB_TYPES:
+ - Update TVDB Info
+ - State Transition
+ - NZB Search
+ - Download (has sub jobs)
+ - Stitch (has sub jobs)
+ - Repair
+ - Extract
+
 """
-import logging
+#import logging
 import time, beanstalkc
 from core.storage import get_session, Episode, ESTATE_SEARCHING
 
 __author__ = 'trey'
+
+JOB_UPDATE_DB = 'update_tvdb'
+
+
+class NNTPConnectionPool(object):
+    def __init__(self, max_connections=10, idle=30):
+        pass
+
+
+class AVJobBase(object):
+    def __init__(self):
+        self.retries = 0
+
+
+class AVJobPool(object):
+    pass
 
 
 class AVScheduler(object):
@@ -29,6 +62,8 @@ class AVScheduler(object):
                 print 'Set to {} :: {}'.format(ESTATE_SEARCHING, unicode(ep))
                 ep.state = ESTATE_SEARCHING
             session.commit()
+
+            print beanstalk.peek_ready()
 
             # The basic way this works is that we will peek at various job queues and make sure
             # spawn subprocesses to manage those queues.
