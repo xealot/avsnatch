@@ -32,9 +32,12 @@ def yenc_decode(lines):
 def read_segment_file(fp):
     # Check to make sure header is present
     lines = fp.readlines()
+    if lines[0].strip() == '':
+        lines.pop(0)
     line = lines[0]
     if not line.startswith('=ybegin'):
-        raise InvalidSegmentException('Not a Segment')
+        #print line, len(line.strip())
+        raise InvalidSegmentException('Not a Segment, =ybegin does not appear first')
     header = parse_yenc_header(line)
 
     # For us, we depend on the part header also.

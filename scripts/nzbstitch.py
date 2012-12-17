@@ -144,11 +144,15 @@ class NZBFetch(BaseScript):
         jobs = Queue()
         stat = Event()
 
+        destination = args.dest
+        if not os.path.isdir(destination):
+            os.makedirs(destination)
+
         # Scan directory for file list, create jobs.
         for filename in os.listdir(args.source):
             path = os.path.join(args.source, filename)
             if os.path.isfile(path):
-                jobs.put(Job(path=path, dest=args.dest))
+                jobs.put(Job(path=path, dest=destination))
 
         master = TaskMaster(jobs, FileWorker, max_threads=10, status=stat)
 
