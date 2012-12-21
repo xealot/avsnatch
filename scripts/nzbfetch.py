@@ -1,17 +1,17 @@
 #!/usr/bin/python
 import socket
-import os, logging, nntplib
+import os, logging
 from functools import partial
 from math import ceil
 from StringIO import StringIO
 from Queue import Empty, Queue
 from threading import Thread, current_thread, Event
-from blinker import Signal
 from blessings import Terminal
 import time
 from lib.nzb import read_segment, check_crc, InvalidSegmentException
 from lib.pynzb import nzb_parser
 from lib.utils import bytes2human
+from lib.asyncnntp import NNTP
 from scripts import BaseScript
 
 
@@ -213,18 +213,10 @@ class FetchJob(Job):
         self.destination = destination
 
 
-class NNTP2(nntplib.NNTP):
-    def __init__(self, host, port=nntplib.NNTP_PORT, user=None, password=None,
-                 readermode=None, usenetrc=True):
-        nntplib.NNTP.__init__(self, host, port, user, password, readermode, usenetrc)
-        # This tries to address some of the connection reset by peer issues
-        self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-
-    def getline(self):
-        """This is where throttling should occur."""
-        #TODO: Implement speed limits on socket.
-        #TODO: Implement reset on segments that take too long to retrieve.
-        return nntplib.NNTP.getline(self)
+class NNTP2(NNTP):
+    pass
+    #TODO: Implement speed limits on socket.
+    #TODO: Implement reset on segments that take too long to retrieve.
 
 
 class ProgressStringIO(StringIO):
@@ -235,86 +227,6 @@ class ProgressStringIO(StringIO):
         StringIO.write(self, s)
         if hasattr(self, 'progress_fn'):
             self.progress_fn(self.len)
-
-
-#class NNTPProcessor(object):
-#    STATE_IDLE = 'IDLE'
-#    STATE_PROC = 'PROCESSING'
-#    STATE_DOWN = 'DOWNLOADING'
-#
-#    def __init__(self, config, queue, status_event):
-#        self.config = config
-#        self.q = queue
-#
-#        # Managing Status Updates
-#        self.status = Signal()
-#        self.status_data = None
-#        self.status_event = status_event
-#        self.status.connect(self.status_update)
-#
-#        # Set Initial Status
-#        self.status.send(state=NNTPProcessor.STATE_IDLE, msg='Idle', name='--', sequence=0)
-#
-#    def status_update(self, sender, **kw):
-#        self.status_data = kw
-#        self.status_event.set()
-#
-#    def __call__(self):
-#        thread = current_thread()
-#        log = logging.getLogger(thread.name)
-#        conn = NNTP2(**self.config)
-#        while True:
-#            try:
-#                segment = self.q.get(timeout=1)
-##                log.debug('Download segment: {}/{}'.format(segment.file.subject, segment.number))
-#                download_segment(conn, segment, self.status, '_work')
-#                self.status.send(state=NNTPProcessor.STATE_IDLE, msg='Idle', name='--', sequence=0)
-#            except Empty:
-##                log.debug('worker done, exiting')
-#                break
-#
-#        self.status.send(state=NNTPProcessor.STATE_PROC, msg='Disconnecting...', name='--', sequence=0)
-#        conn.quit()
-#
-#
-#def download_segment(connection, segment, signal=None, destination=None):
-#    if destination is not None and not os.path.exists(destination):
-#        print 'DESTINATION "{}" NOT FOUND'.format(destination)
-#        return
-#
-#    # Status Types are Processing and Downloading.
-#    def _processing(state, msg, bytes=None):
-#        if signal is not None:
-#            signal_data = dict(
-#                state=state,
-#                msg=msg,
-#                name=segment.message_id,
-#                sequence=segment.number
-#            )
-#            if bytes is not None:
-#                signal_data.update(data=dict(
-#                    bytes_received=bytes,
-#                    bytes_total=segment.bytes,
-#                ))
-#            signal.send(**signal_data)
-#
-#
-#    buffer = ProgressStringIO()
-#    _processing(NNTPProcessor.STATE_DOWN, 'Starting Download', bytes=1)  # Init things.
-#    buffer.progress(partial(_processing, NNTPProcessor.STATE_DOWN, 'Downloading'))
-#
-#    connection.group(segment.groups[0])
-#    connection.body('<{}>'.format(segment.message_id), buffer)
-#
-#    if destination is None:
-#        return (
-#            segment, buffer
-#        )
-#
-#    _processing(NNTPProcessor.STATE_PROC, 'Writing File', bytes=segment.bytes)
-#    with open(os.path.join(destination, segment.message_id), 'wb') as fp:
-#        buffer.seek(0)
-#        fp.write(buffer.read())
 
 
 class NZBFetch(BaseScript):
@@ -340,10 +252,9 @@ class NZBFetch(BaseScript):
 
         # Parse specified segments out of NZB file.
         needed = set()
-        subject = args.nzb
         with open(args.nzb) as fp:
             parsed = nzb_parser.parse(fp.read())
-            subject = parsed.subject
+            subject = parsed.subject or args.nzb
         for file in parsed.files:
             for segment in file.segments:
                 needed.add(NZBSegment(segment))
@@ -387,6 +298,7 @@ class NZBFetch(BaseScript):
         segments_to_fetch = needed - existing
 
         # Add files to fetch into the queue.
+        #jobs.put(FetchJob(segments_to_fetch.pop(), destination))
         for segment in segments_to_fetch:
             jobs.put(FetchJob(segment, destination))
 
@@ -408,7 +320,7 @@ class NZBFetch(BaseScript):
         status = Thread(name='Status Printer', target=status_output_control)
         status.start()
 
-        while True:
+        while jobs.qsize() > 0:
             try:
                 thread.join(0.1)
             except KeyboardInterrupt:
